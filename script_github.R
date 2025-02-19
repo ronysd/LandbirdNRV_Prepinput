@@ -108,7 +108,7 @@ process_scanfi_rasters <- function(input_folder, output_folder, variable_type) {
       message(paste("Processing Crown Closure for year", year_val,"- Applying focal mean smoothing."))
     }
     
-    # Compute smoothed version using focal mean (default treatment for all)
+    # Compute smoothed version using focal mean (default treatment for all and this is done on 1km resolution)
     raster_5k <- terra::focal(raster_pj, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
     
     # Crop the rasters

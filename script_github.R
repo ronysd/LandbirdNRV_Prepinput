@@ -54,7 +54,7 @@ download_scanfi_files(years, variable_types, SCANFI_parentid, download_folder)
 
 
 #### better function integrating year_val at the beginning
-
+### Function to process the rasters with specific requirements accoring to the elements of the variables list (variable_types)
 
 
 process_scanfi_rasters <- function(input_folder, output_folder, variable_type) {

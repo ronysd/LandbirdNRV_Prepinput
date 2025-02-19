@@ -1,5 +1,5 @@
 
-
+## Load packages
 library(googledrive)
 library(terra)
 drive_auth()
@@ -12,17 +12,19 @@ download_folder <- "./CovariateRasters/SCANFI"
 if (!dir.exists(output_folder)) dir.create(output_folder, recursive = TRUE)
 if (!dir.exists(download_folder)) dir.create(download_folder, recursive = TRUE)
 
-##  define CRS and template raster
+##  define CRS and template raster, this is from BAM github scripts, could be linked with studyarea from spades?
 EPSG.5072 <- "+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"
 rast1k <- rast(nrows=4527, ncols=7300, xmin=-4100000, xmax=3200000, ymin=1673000, ymax=6200000, crs = EPSG.5072)
 
 ##  Load Web Data Access URLs from csv located on the google drive
+## csv url and path to store the csv
 csv_file_id <- "1cz0UbXpfD14CU5RrOVYckMKbuNddFGdH_tUJBwScXnQ"
 local_csv_path <- "./webDataAccess.csv"
 
 # Download CSV file from Google Drive and store it in local drive for further use
 drive_download(as_id(csv_file_id), path = local_csv_path, overwrite = TRUE)
 
+## Read the csv to extract urls, this csv could also help to extract urls for outher sources, with the Dataset ID
 webData <- read.csv(local_csv_path, fileEncoding="UTF-8-BOM")
 SCANFI_lnd <- subset(webData, Dataset == "Biomass_SCANFI")
 SCANFI_parentid <- SCANFI_lnd$url

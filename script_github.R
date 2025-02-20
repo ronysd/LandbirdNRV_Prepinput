@@ -83,7 +83,51 @@ process_scanfi_rasters <- function(input_folder, output_folder, variable_type) {
     raster_pj <- terra::project(raster_data, rast1k)
     
     ## Variable specific processing, this could be defined during the setup project? or by default it will run for all ##
-    if (variable_type == "height") {
+    
+    # Biomass processing - If requested, process Biomass only
+    if (variable_type == "Biomass") {
+      message(paste("Processing Biomass for year", year_val))
+      
+      # Reproject to 1km resolution
+      raster_pj <- terra::project(raster_data, rast1k)
+      
+      # Compute 5km mean at 1km resolution
+      raster_5k <- terra::focal(raster_pj, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
+      
+      # Crop both rasters
+      raster_1k_cp <- crop(raster_pj, ext(rast1k))
+      raster_5k_cp <- crop(raster_5k, ext(rast1k))
+      
+      # Save raster outputs
+      writeRaster(raster_1k_cp, file.path(output_folder, paste0("SCANFIbiomass1km_", year_val, ".tif")), overwrite = TRUE)
+      writeRaster(raster_5k_cp, file.path(output_folder, paste0("SCANFIbiomass5x5_", year_val, ".tif")), overwrite = TRUE)
+      
+      next
+    }
+    
+    # If species level percentage (sps) is requested only, check if Biomass exists
+    if (variable_type == "sps") {
+      biomass_raster_path <- file.path(output_folder, paste0("SCANFIbiomass1km_", year_val, ".tif"))
+      
+      # if biomass doesnt exist, process biomass first
+      if (!file.exists(biomass_raster_path)) {
+        message(paste("Biomass raster missing for year", year_val, "- Running Biomass processing first."))
+        process_scanfi_rasters(input_folder, output_folder, "Biomass")
+      }
+      
+      # now load the rasters
+      if (file.exists(biomass_raster_path)) {
+        biomass_raster <- rast(biomass_raster_path)
+        raster_pj <- (raster_pj / 100) * biomass_raster  # Convert species percentage to biomass
+      } else {
+        warning(paste("Biomass raster still not found for year:", year_val, "Skipping:", outfile))
+        next
+      }
+    }
+    
+    
+    ## height processing
+      if (variable_type == "height") {
       # calculate CV
       cv <- function(x) {
         y <- na.omit(sample(x, size = 10, replace = FALSE))
@@ -94,20 +138,21 @@ process_scanfi_rasters <- function(input_folder, output_folder, variable_type) {
       raster_5k_cv <- terra::focal(raster_cv_pj, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
     }
     
-    if (variable_type == "sps") {
-      # Load the corresponding Biomass raster for that year
-      biomass_raster_path <- file.path(output_folder, paste0("SCANFIbiomass1km_", year_val, ".tif"))
-      #browser()
-      if (file.exists(biomass_raster_path)) {
-        biomass_raster <- rast(biomass_raster_path)
-        # Convert species-level percentage to biomass by multiplying with total biomass
-        raster_pj <- (raster_pj / 100) * biomass_raster
-      } else {
-        warning(paste("Biomass raster not found for year:", year_val, "Skipping:", outfile))
-        next
-      }
-    }
+    # if (variable_type == "sps") {
+    #   # Load the corresponding Biomass raster for that year
+    #   biomass_raster_path <- file.path(output_folder, paste0("SCANFIbiomass1km_", year_val, ".tif"))
+    #   #browser()
+    #   if (file.exists(biomass_raster_path)) {
+    #     biomass_raster <- rast(biomass_raster_path)
+    #     # Convert species-level percentage to biomass by multiplying with total biomass
+    #     raster_pj <- (raster_pj / 100) * biomass_raster
+    #   } else {
+    #     warning(paste("Biomass raster not found for year:", year_val, "Skipping:", outfile))
+    #     next
+    #   }
+    # }
     
+    ## crown closure processing
     if (variable_type == "closure") {
       message(paste("Processing Crown Closure for year", year_val,"- Applying focal mean smoothing."))
     }
@@ -138,4 +183,4 @@ for (var_type in variable_types) {
 
 
 ## process variables individually, to check
-process_scanfi_rasters(download_folder, output_folder, "height")
+process_scanfi_rasters(download_folder, output_folder, "Biomass")

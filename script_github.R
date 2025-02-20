@@ -1,3 +1,6 @@
+##########################   Download and process SCANFI variables ########################
+
+
 
 ## Load packages
 library(googledrive)
@@ -21,7 +24,8 @@ rast1k <- rast(nrows=4527, ncols=7300, xmin=-4100000, xmax=3200000, ymin=1673000
 csv_file_id <- "1cz0UbXpfD14CU5RrOVYckMKbuNddFGdH_tUJBwScXnQ"
 local_csv_path <- "./webDataAccess.csv"
 
-# Download CSV file from Google Drive and store it in local drive for further use
+# Download CSV file from Google Drive and store it in local drive for further use (the csv contains url for 
+# Landfire biomass, height, CONUS, Landcover_hermosilla, peatland, roads etc)
 drive_download(as_id(csv_file_id), path = local_csv_path, overwrite = TRUE)
 
 ## Read the csv to extract urls, this csv could also help to extract urls for outher sources, with the Dataset ID
@@ -36,13 +40,13 @@ variable_types <- c("Biomass", "height", "sps", "closure")  # extendable list
 ## Function to Download Data from Google Drive
 download_scanfi_files <- function(years, variable_types, parent_id, download_folder) {
   for (year in years) {
-    dr_subf <- drive_ls(as_id(parent_id), pattern = year)
-    for (var_type in variable_types) {
-      dr_var <- drive_ls(as_id(dr_subf), pattern = var_type)
-      for (i in 1:nrow(dr_var)) {
-        if (endsWith(dr_var$name[i], "tif")) {
-          download_path <- file.path(download_folder, dr_var$name[i])
-          drive_download(as_id(dr_var$id[i]), path = download_path, overwrite = TRUE)
+  dr_subf <- drive_ls(as_id(parent_id), pattern = year)
+  for (var_type in variable_types) {
+    dr_var <- drive_ls(as_id(dr_subf), pattern = var_type)
+    for (i in 1:nrow(dr_var)) {
+      if (endsWith(dr_var$name[i], "tif")) {
+        download_path <- file.path(download_folder, dr_var$name[i])
+        drive_download(as_id(dr_var$id[i]), path = download_path, overwrite = TRUE)
         }
       }
     }
@@ -56,7 +60,7 @@ download_scanfi_files(years, variable_types, SCANFI_parentid, download_folder)
 
 
 #### better function integrating year_val at the beginning
-### Function to process the rasters with specific requirements accoring to the elements of the variables list (variable_types)
+### Function to process the rasters with specific requirements according to the elements of the variables list (variable_types)
 
 
 process_scanfi_rasters <- function(input_folder, output_folder, variable_type) {
@@ -133,9 +137,5 @@ for (var_type in variable_types) {
 
 
 
-## process variables individually
+## process variables individually, to check
 process_scanfi_rasters(download_folder, output_folder, "height")
-
-
-
-

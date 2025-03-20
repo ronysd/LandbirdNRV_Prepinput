@@ -130,7 +130,7 @@ Init <- function(sim) {
   
   ## Wetlands Processing (Only 1km, No Focal Mean)
   sim$wetlandsProcessed_1km <- prepInputs(
-    url = sim$wetlands,
+    url = sim$wetlandsURL,
     fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
   ) |> Cache()
   

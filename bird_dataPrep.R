@@ -98,7 +98,13 @@ Init <- function(sim) {
   ## Dormancy Processing - 1km and 5km
   sim$dormancyProcessed$dormancy_1km <- prepInputs(
     url = sim$dormancyURL,
-    fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
+    fun = quote({
+      tfp <- sort(targetFilePath)
+      b <- terra::rast(tfp)
+      names(b) <- basename(tfp)
+      b
+    }),
+    destinationPath = dPath, to = sim$studyAreaRas
   ) |> Cache()
   
   sim$dormancyProcessed$dormancy_5km <- terra::focal(sim$dormancyProcessed$dormancy_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
@@ -111,7 +117,7 @@ Init <- function(sim) {
   ) |> Cache()
   sim$roadProcessed$road_1km <- rasterizeGeom(sim$roadProcessed$road_1km, sim$studyAreaRas, fun = "length", unit = "km") |> Cache()
   sim$roadProcessed$road_5km <- terra::focal(sim$roadProcessed$road_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-  browser()
+
   ## Human Footprint (HF) Processing - 1km and 5km
   sim$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,
@@ -119,7 +125,7 @@ Init <- function(sim) {
   ) |> Cache()
   
   sim$hfProcessed$hf_5km <- terra::focal(sim$hfProcessed$hf_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
- browser()
+
   ## Topography Processing - 1km and 5km
   sim$topographyProcessed$topography_1km <- prepInputs(
     url = sim$topographyURL,

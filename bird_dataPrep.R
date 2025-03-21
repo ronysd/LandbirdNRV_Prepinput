@@ -37,7 +37,7 @@ defineModule(sim, list(
                  sourceURL ="https://drive.google.com/drive/folders/1pcBxwuR8ZM6bslF8oWyZo6sM8yOtbzU8"),
     expectsInput(objectName ="topographyURL", objectClass = "character", desc ="URL for topography data.",
                  sourceURL ='https://drive.google.com/drive/folders/1tOtA6gqNN55xGiGuxTG6YNHLF3r3QvRK'),
-    expectsInput(objectName ="roadURL", objectClass = "character", "URL for Canadian road network shapefile.", 
+    expectsInput(objectName ="roadID", objectClass = "character", "URL for Canadian road network shapefile.", 
                  sourceURL = "https://www12.statcan.gc.ca/census-recensement/2011/geo/RNF-FRR/files-fichiers/grnf000r10a_e.zip"),
     expectsInput(objectName ="hfURL", objectClass = "character", "URL for Canadian human footprint (disturbance proxy) data.", 
                  sourceURL =  "https://drive.google.com/drive/folders/1PsqXP-FYrdQrZ3uEkyR8BiyQOn3wZCW1"),
@@ -110,14 +110,16 @@ Init <- function(sim) {
   sim$dormancyProcessed$dormancy_5km <- terra::focal(sim$dormancyProcessed$dormancy_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
   
   ## Road Processing - 1km and 5km
-  sim$roadProcessed$road_1km <- prepInputs(
-    url = sim$roadURL,
-    fun = "terra::vect", projectTo = sim$studyAreaRas,
-    destinationPath = dPath
-  ) |> Cache()
-  sim$roadProcessed$road_1km <- rasterizeGeom(sim$roadProcessed$road_1km, sim$studyAreaRas, fun = "length", unit = "km") |> Cache()
-  sim$roadProcessed$road_5km <- terra::focal(sim$roadProcessed$road_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
+  # sim$roadProcessed$road_1km <- prepInputs(
+  #   url = sim$roadID,
+  #   fun = "terra::vect", projectTo = sim$studyAreaRas,
+  #   destinationPath = dPath
+  # ) |> Cache()
+  # sim$roadProcessed$road_1km <- rasterizeGeom(sim$roadProcessed$road_1km, sim$studyAreaRas, fun = "length", unit = "km") |> Cache()
+  # sim$roadProcessed$road_5km <- terra::focal(sim$roadProcessed$road_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
 
+  
+  sim$roadProcessed <- processROAD(csv_file_id, studyAreaRas)
   ## Human Footprint (HF) Processing - 1km and 5km
   sim$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,
@@ -186,8 +188,8 @@ plotFun <- function(sim) {
     sim$topographyURL <- "https://drive.google.com/drive/folders/1tOtA6gqNN55xGiGuxTG6YNHLF3r3QvRK"
   }
   
-  if (!suppliedElsewhere("roadURL", sim)) {
-    sim$roadURL <- "https://www12.statcan.gc.ca/census-recensement/2011/geo/RNF-FRR/files-fichiers/grnf000r10a_e.zip"
+  if (!suppliedElsewhere("roadID", sim)) {
+    sim$roadID <- "1jIJ4MyBAY8CMgqvh45gkTCGkX-AcpX0N"
   }
   
   if (!suppliedElsewhere("hfURL", sim)) {

@@ -119,7 +119,7 @@ Init <- function(sim) {
   # sim$roadProcessed$road_5km <- terra::focal(sim$roadProcessed$road_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
 
   
-  sim$roadProcessed <- processROAD(csv_file_id, studyAreaRas)
+  sim$roadProcessed <- processROAD(roadID, studyAreaRas)
   ## Human Footprint (HF) Processing - 1km and 5km
   sim$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,

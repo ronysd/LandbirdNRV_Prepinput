@@ -38,7 +38,7 @@ defineModule(sim, list(
     expectsInput(objectName ="topographyURL", objectClass = "character", desc ="URL for topography data.",
                  sourceURL ='https://drive.google.com/drive/folders/1tOtA6gqNN55xGiGuxTG6YNHLF3r3QvRK'),
     expectsInput(objectName ="roadID", objectClass = "character", "google URL ID for the csv with Canadian road network shapefile URLs for different years.", 
-                 sourceURL = "https://www12.statcan.gc.ca/census-recensement/2011/geo/RNF-FRR/files-fichiers/grnf000r10a_e.zip"),
+                 sourceURL ="https://drive.google.com/file/d/1jIJ4MyBAY8CMgqvh45gkTCGkX-AcpX0N",
     expectsInput(objectName ="hfURL", objectClass = "character", "URL for Canadian human footprint (disturbance proxy) data.", 
                  sourceURL =  "https://drive.google.com/drive/folders/1PsqXP-FYrdQrZ3uEkyR8BiyQOn3wZCW1"),
     expectsInput(objectName ="SCANFIurls", objectClass = "character", desc = "Google Drive URL for SCANFI biomass raster datasets.", 
@@ -119,7 +119,7 @@ Init <- function(sim) {
   # sim$roadProcessed$road_5km <- terra::focal(sim$roadProcessed$road_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
 
   
-  sim$roadProcessed <- processROAD(roadID, studyAreaRas)
+  sim$roadProcessed <- processROAD(sim$roadID, sim$studyAreaRas)
   ## Human Footprint (HF) Processing - 1km and 5km
   sim$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,

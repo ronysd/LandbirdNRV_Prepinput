@@ -27,8 +27,8 @@ processROAD <- function(csv_file_id, studyAreaRas) {
     roadRaster_5km <- terra::focal(roadRaster_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
     
     roadRasterList[[as.character(year)]] <- list(
-      road_1km = roadRaster_1km,
-      road_5km = roadRaster_5km
+      canroad_1km = roadRaster_1km,
+      canroad_5x5 = roadRaster_5km
     )
   }
   

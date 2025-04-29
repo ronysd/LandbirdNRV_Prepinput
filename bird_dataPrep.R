@@ -16,7 +16,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "bird_dataPrep.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "terra", "reproducible",  "PredictiveEcology/reproducible@AI (HEAD)","googledrive","dplyr"),
+  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "terra", "reproducible", "googledrive","dplyr"),
   parameters = bindrows(
     defineParameter(".plots", "character", "screen", NA, NA, "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA, "Describes the simulation time at which the first plot event should occur."),
@@ -39,10 +39,14 @@ defineModule(sim, list(
                  sourceURL ='https://drive.google.com/drive/folders/1tOtA6gqNN55xGiGuxTG6YNHLF3r3QvRK'),
     expectsInput(objectName ="roadID", objectClass = "character", "google URL ID for the csv with Canadian road network shapefile URLs for different years.", 
                  sourceURL = "https://www12.statcan.gc.ca/census-recensement/2011/geo/RNF-FRR/files-fichiers/grnf000r10a_e.zip"),
+    expectsInput(objectName = "climateNormalURL", objectClass = "character", desc = "Google Drive folder ID for Climate Normal data.",
+                 sourceURL = "https://drive.google.com/drive/folders/1FP2hWm9VzIofnycRAGmNDwj-X5VPEdsw"),
+    expectsInput(objectName = "climateAnnualURL", objectClass = "character", desc = "Google Drive folder ID for Annual Climate data.",
+                 sourceURL = "https://drive.google.com/drive/folders/1GSkhN8-zJijMAZUn_TTGIDtShVN0R6JQ"),
     expectsInput(objectName ="hfURL", objectClass = "character", "URL for Canadian human footprint (disturbance proxy) data.", 
                  sourceURL =  "https://drive.google.com/drive/folders/1PsqXP-FYrdQrZ3uEkyR8BiyQOn3wZCW1"),
-    expectsInput(objectName ="SCANFIurls", objectClass = "character", desc = "Google Drive URL for SCANFI biomass raster datasets.", 
-                 sourceURL = "https://drive.google.com/drive/folders/1HkD75VEE4GAcFv3J9SPPAhLXaxXsZ4YL")
+    expectsInput(objectName ="SCANFIurls", objectClass = "character", desc = "Google Drive URL for Processed SCANFI (or unprocessed, if theres any, remember to change processed =TRUE/FALSE for the processSCANFI call) biomass raster datasets.", 
+                 sourceURL ="https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs")
   ),
   outputObjects = bindrows(
     createsOutput(objectName ="greenupProcessed", objectClass = "list", desc= "Processed greenup raster with focal mean applied."),
@@ -50,6 +54,8 @@ defineModule(sim, list(
     createsOutput(objectName ="wetlandsProcessed_1km", objectClass = "SpatRaster", desc= "Processed wetland raster with focal mean applied."),
     createsOutput(objectName ="topographyProcessed", objectClass = "list", desc= "Processed topography raster with focal mean applied."),
     createsOutput(objectName ="roadProcessed", objectClass = "list", "Rasterized road density with 5km focal mean applied."),
+    createsOutput(objectName = "climateNormal", objectClass = "SpatRaster", desc = "Climate normal variables at 1km resolution."),
+    createsOutput(objectName = "climateAnnual", objectClass = "SpatRaster", desc = "Annual climate variables at 1km resolution."),
     createsOutput(objectName ="hfProcessed", objectClass = "list", "Rasterized human footprint at 1km resolution and with 5x5 focal mean applied."),
     createsOutput("SCANFIProcessed", objectClass = "list", desc= "Processed SCANFI biomass data at 1km resolution and with 5x5 focal mean applied.")
   )
@@ -81,69 +87,45 @@ doEvent.bird_dataPrep = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   dPath <- "~/tmp/"
-  ## Greenup Processing - 1km and 5km
-  sim$match$greenupProcessed$greenup_1km <- prepInputs(
-    url = sim$greenupURL,
-    fun = quote({
-      tfp <- sort(targetFilePath)
-      b <- terra::rast(tfp)
-      names(b) <- basename(tfp)
-      b
-    }),
-    destinationPath = dPath, to = sim$studyAreaRas
-  ) |> Cache()
+
+  # Greenup Processing - 1km (or to study area res and extent)
+  sim$match$greenupProcessed$greenup_1km <- processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
+                                            varPrefix = "StandardGreenup") ## VarPrefix renames the layer to make them model-ready
   
-  sim$match$greenupProcessed$greenup_5km <- terra::focal(sim$match$greenupProcessed$greenup_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-  
-  ## Dormancy Processing - 1km and 5km
-  sim$match$dormancyProcessed$dormancy_1km <- prepInputs(
-    url = sim$dormancyURL,
-    fun = quote({
-      tfp <- sort(targetFilePath)
-      b <- terra::rast(tfp)
-      names(b) <- basename(tfp)
-      b
-    }),
-    destinationPath = dPath, to = sim$studyAreaRas
-  ) |> Cache()
-  
-  sim$match$dormancyProcessed$dormancy_5km <- terra::focal(sim$match$dormancyProcessed$dormancy_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-  
+  # Dormancy Processing - 1km (or to study area res and extent)  
+  sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
+                                             varPrefix = "StandardDormancy") ## VarPrefix renames the layer to make them model-ready
+    
   ## Road Processing - 1km and 5km
-  # sim$roadProcessed$road_1km <- prepInputs(
-  #   url = sim$roadID,
-  #   fun = "terra::vect", projectTo = sim$studyAreaRas,
-  #   destinationPath = dPath
-  # ) |> Cache()
-  # sim$roadProcessed$road_1km <- rasterizeGeom(sim$roadProcessed$road_1km, sim$studyAreaRas, fun = "length", unit = "km") |> Cache()
-  # sim$roadProcessed$road_5km <- terra::focal(sim$roadProcessed$road_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-  
-  
   sim$match$roadProcessed <- processROAD(sim$roadID, sim$studyAreaRas)
+  
+  #browser()
+
+  #Process climate normal and climate annual data
+  sim$static$climateNormal <-processCLIMATE(sim$climateNormalURL, sim$studyAreaRas)
+  sim$match$climateAnnual <-processCLIMATE(sim$climateAnnualURL, sim$studyAreaRas)
+  
   ## Human Footprint (HF) Processing - 1km and 5km
   sim$static$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,
     fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
   ) |> Cache()
+  names(sim$static$hfProcessed$hf_1km) <- "CanHF_1km"
+  sim$static$hfProcessed$hf_5km <- terra::focal(sim$static$hfProcessed$hf_1km, 
+  w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
+  names(sim$static$hfProcessed$hf_5km) <- "CanHF_5X5"  
+  #browser()
   
-  sim$static$hfProcessed$hf_5km <- terra::focal(sim$static$hfProcessed$hf_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
+  
+  ## Wetlands Processing   
+  sim$static$wetlandsProcessed <- processWETLANDS(sim$wetlandsURL, sim$studyAreaRas, processed = TRUE)
   
   ## Topography Processing - 1km and 5km
-  sim$static$topographyProcessed$topography_1km <- prepInputs(
-    url = sim$topographyURL,
-    fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
-  ) |> Cache()
-  
-  sim$static$topographyProcessed$topography_5km <- terra::focal(sim$static$topographyProcessed$topography_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-  
-  ## Wetlands Processing (Only 1km, No Focal Mean)
-  sim$static$wetlandsProcessed_1km <- prepInputs(
-    url = sim$wetlandsURL,
-    fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
-  ) |> Cache()
-  
+    sim$static$topographyProcessed <- processTopography(
+    url = sim$topographyURL,sim$studyAreaRas, processed = TRUE)
+
   ## SCANFI Processing - 1km and 5km
-  sim$match$SCANFI_processed <- processSCANFI(sim$SCANFIurls, sim$studyAreaRas)
+  sim$match$SCANFI_processed <- processSCANFI(sim$SCANFIurls, sim$studyAreaRas, processed=TRUE)
   
   return(invisible(sim))
 }
@@ -181,15 +163,22 @@ plotFun <- function(sim) {
   }
   
   if (!suppliedElsewhere("wetlandsURL", sim)) {
-    sim$wetlandsURL <- "https://drive.google.com/drive/folders/1pcBxwuR8ZM6bslF8oWyZo6sM8yOtbzU8"
+    sim$wetlandsURL <- "https://drive.google.com/drive/folders/1qneFtxUG00PNIZjy3mnPyy3wwiI2st90"
   }
   
   if (!suppliedElsewhere("topographyURL", sim)) {
-    sim$topographyURL <- "https://drive.google.com/drive/folders/1tOtA6gqNN55xGiGuxTG6YNHLF3r3QvRK"
+    sim$topographyURL <- "https://drive.google.com/drive/folders/1poL9tnzWfvSjFn7uBJkRi1b7crF-HCLJ"
   }
   
   if (!suppliedElsewhere("roadID", sim)) {
     sim$roadID <- "1jIJ4MyBAY8CMgqvh45gkTCGkX-AcpX0N"
+  }
+  
+  if (!suppliedElsewhere("climateNormalURL", sim)) {
+    sim$climateNormalURL <- "https://drive.google.com/drive/folders/1mG6g8sJVsHScGKxbW9X1xz6ExvsNv1oj"
+  }
+  if (!suppliedElsewhere("climateAnnualURL", sim)) {
+    sim$climateAnnualURL <- "https://drive.google.com/drive/folders/1GSkhN8-zJijMAZUn_TTGIDtShVN0R6JQ"
   }
   
   if (!suppliedElsewhere("hfURL", sim)) {
@@ -197,7 +186,7 @@ plotFun <- function(sim) {
   }
   
   if (!suppliedElsewhere("SCANFIurls", sim)) {
-    sim$SCANFIurls <- "https://drive.google.com/drive/folders/1HkD75VEE4GAcFv3J9SPPAhLXaxXsZ4YL"
+    sim$SCANFIurls <- "https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs"
   }
   
   

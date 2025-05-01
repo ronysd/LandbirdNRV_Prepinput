@@ -158,38 +158,30 @@ plotFun <- function(sim) {
   if (!suppliedElsewhere("greenupURL", sim)) {
     sim$greenupURL <- "https://drive.google.com/drive/folders/1S7tF7vlWuCsKNcm9B8-9sdoX68Ewfq9G"
   }
-  
   if (!suppliedElsewhere("dormancyURL", sim)) {
     sim$dormancyURL <- "https://drive.google.com/drive/folders/1aF2bNq5emngUN4zWahz-awCixqA5qV6x"
   }
-  
   if (!suppliedElsewhere("wetlandsURL", sim)) {
     sim$wetlandsURL <- "https://drive.google.com/drive/folders/1qneFtxUG00PNIZjy3mnPyy3wwiI2st90"
   }
-  
   if (!suppliedElsewhere("topographyURL", sim)) {
     sim$topographyURL <- "https://drive.google.com/drive/folders/1poL9tnzWfvSjFn7uBJkRi1b7crF-HCLJ"
   }
-  
   if (!suppliedElsewhere("roadID", sim)) {
     sim$roadID <- "1jIJ4MyBAY8CMgqvh45gkTCGkX-AcpX0N"
   }
-  
   if (!suppliedElsewhere("climateNormalURL", sim)) {
     sim$climateNormalURL <- "https://drive.google.com/drive/folders/1mG6g8sJVsHScGKxbW9X1xz6ExvsNv1oj"
   }
   if (!suppliedElsewhere("climateAnnualURL", sim)) {
     sim$climateAnnualURL <- "https://drive.google.com/drive/folders/1GSkhN8-zJijMAZUn_TTGIDtShVN0R6JQ"
   }
-  
   if (!suppliedElsewhere("hfURL", sim)) {
     sim$hfURL <- "https://drive.google.com/drive/folders/1PsqXP-FYrdQrZ3uEkyR8BiyQOn3wZCW1"
   }
-  
   if (!suppliedElsewhere("SCANFIurls", sim)) {
     sim$SCANFIurls <- "https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs"
   }
-  
   
   return(invisible(sim))
 }

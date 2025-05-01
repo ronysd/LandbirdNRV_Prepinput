@@ -5,8 +5,6 @@ processCLIMATE <- function(url, studyAreaRas) {
   dPath <- "~/tmp/"
   dir.create(dPath, showWarnings = FALSE, recursive = TRUE)
   
-  message("Loading climate data from: ", url)
-  
   ras <- prepInputs(
     url = url,
     fun = quote({
@@ -19,7 +17,7 @@ processCLIMATE <- function(url, studyAreaRas) {
         grepl("^Normal_1991_2020_", names_b),
         {
           cleaned_name <- gsub("^Normal_1991_2020_", "", names_b)
-          cleaned_name <- gsub("(Tave|PPT|DD)_([a-z0-9]+)", "\\1\\2", cleaned_name)  # Remove underscore in patterns like DD_0
+          cleaned_name <- gsub("(Tave|PPT|DD)_([a-z0-9]+)", "\\1\\2", cleaned_name)  
           ifelse(grepl("_1km$", cleaned_name), cleaned_name, paste0(cleaned_name, "_1km"))  # Add _1km if missing
         },
         # For other files, append _1km only if not already present

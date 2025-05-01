@@ -30,8 +30,6 @@ processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
     return(result_list)
   } else {
     message("Detected URL for unprocessed wetland rasters")
-    
-    # Flat folder download
     rasters <- prepInputs(
       url = wetlandsURL,
       destinationPath = dPath,
@@ -44,7 +42,7 @@ processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
       to = studyAreaRas
     ) |> Cache()
     
-    # Split into 1km and 5x5 (focal mean)
+    # Split into 1km and 5x5
     rasters_1km <- rasters
     rasters_5x5 <- terra::focal(rasters_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
     

@@ -49,6 +49,7 @@ defineModule(sim, list(
                  sourceURL ="https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs")
   ),
   outputObjects = bindrows(
+     # This needs modification, as currently the output is only matched and static, and later, the stacked layer
     createsOutput(objectName ="greenupProcessed", objectClass = "list", desc= "Processed greenup raster with focal mean applied."),
     createsOutput(objectName ="dormancyProcessed", objectClass = "list", desc= "Processed dormancy raster with focal mean applied."),
     createsOutput(objectName ="wetlandsProcessed_1km", objectClass = "SpatRaster", desc= "Processed wetland raster with focal mean applied."),
@@ -90,11 +91,11 @@ Init <- function(sim) {
 
   # Greenup Processing - 1km (or to study area res and extent)
   sim$match$greenupProcessed$greenup_1km <- processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
-                                            varPrefix = "StandardGreenup") ## VarPrefix renames the layer to make them model-ready
+                                            varPrefix = "StandardGreenup") ## VarPrefix renames the layer to match them with model variable names
   
   # Dormancy Processing - 1km (or to study area res and extent)  
   sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
-                                             varPrefix = "StandardDormancy") ## VarPrefix renames the layer to make them model-ready
+                                             varPrefix = "StandardDormancy") ## VarPrefix renames the layer to match them with model variable names
     
   ## Road Processing - 1km and 5km
   sim$match$roadProcessed <- processROAD(sim$roadID, sim$studyAreaRas)

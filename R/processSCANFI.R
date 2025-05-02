@@ -22,7 +22,7 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
   main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", SCANFIurl)
   drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")
   
-  # Processed SCANFI , so just loading. clipping and renaming should be enough 
+  # ---- Processed SCANFI ----
   if (processed) {
     result_list <- list()
     for (res in c("1km", "5x5")) {
@@ -40,13 +40,13 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
           b
         }),
         to = studyAreaRas
-      )
+      )|> Cache()
       result_list[[res]] <- tfp
     }
     return(result_list)
   }
   
-  # Unprocessed SCANFI- further processing required
+  # ---- Unprocessed SCANFI ----
   variable_types <- c("biomass", "height", "sps", "closure")
   cv <- function(x) {
     y <- na.omit(sample(x, size = min(10, length(x)), replace = FALSE))
@@ -69,7 +69,7 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
         rast(tf)
       }),
       to = studyAreaRas
-    )
+    )|> Cache()
     
     for (i in 1:nlyr(files)) {
       name_i <- names(files)[i]

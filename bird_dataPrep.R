@@ -94,7 +94,7 @@ Init <- function(sim) {
                                             varPrefix = "StandardGreenup") ## VarPrefix renames the layer to match them with model variable names
   
   # Dormancy Processing - 1km (or to study area res and extent)  
-  sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
+  sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$dormancyURL,out$studyAreaRas,
                                              varPrefix = "StandardDormancy") ## VarPrefix renames the layer to match them with model variable names
     
   ## Road Processing - 1km and 5km

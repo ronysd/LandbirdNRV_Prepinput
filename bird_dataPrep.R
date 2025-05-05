@@ -114,7 +114,7 @@ Init <- function(sim) {
   names(sim$static$hfProcessed$hf_1km) <- "CanHF_1km"
   sim$static$hfProcessed$hf_5km <- terra::focal(sim$static$hfProcessed$hf_1km, 
   w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-  names(sim$static$hfProcessed$hf_5km) <- "CanHF_5X5"  
+  names(sim$static$hfProcessed$hf_5km) <- "CanHF_5x5"  
   #browser()
   
   

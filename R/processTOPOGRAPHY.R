@@ -31,7 +31,7 @@ processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
   } else {
     message("Detected URL for unprocessed wetland rasters")
     
-    # Flat folder download
+    # Folder download
     rasters <- prepInputs(
       url = wetlandsURL,
       destinationPath = dPath,

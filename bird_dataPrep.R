@@ -49,7 +49,7 @@ defineModule(sim, list(
                  sourceURL ="https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs")
   ),
   outputObjects = bindrows(
-     # This needs modification, as currently the output is only matched and static, and later, the stacked layer
+    # This needs modification, as currently the output is only matched and static, and later, the stacked layer
     createsOutput(objectName ="greenupProcessed", objectClass = "list", desc= "Processed greenup raster with focal mean applied."),
     createsOutput(objectName ="dormancyProcessed", objectClass = "list", desc= "Processed dormancy raster with focal mean applied."),
     createsOutput(objectName ="wetlandsProcessed_1km", objectClass = "SpatRaster", desc= "Processed wetland raster with focal mean applied."),
@@ -88,24 +88,40 @@ doEvent.bird_dataPrep = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   dPath <- "~/tmp/"
-
+  
   # Greenup Processing - 1km (or to study area res and extent)
   sim$match$greenupProcessed$greenup_1km <- processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
-                                            varPrefix = "StandardGreenup") ## VarPrefix renames the layer to match them with model variable names
+                                                                   varPrefix = "StandardGreenup") ## VarPrefix renames the layer to make them model-ready
   
   # Dormancy Processing - 1km (or to study area res and extent)  
+  
   sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$dormancyURL,out$studyAreaRas,
-                                             varPrefix = "StandardDormancy") ## VarPrefix renames the layer to match them with model variable names
-    
+                                                                    varPrefix = "StandardDormancy") ## VarPrefix renames the layer to make them model-ready
+  
   ## Road Processing - 1km and 5km
+  
   sim$match$roadProcessed <- processROAD(sim$roadID, sim$studyAreaRas)
   
+  ## SCANFI Processing - 1km and 5km
+  sim$match$SCANFI_processed <- processSCANFI(sim$SCANFIurls, sim$studyAreaRas, processed=TRUE)
   #browser()
-
-  #Process climate normal and climate annual data
-  sim$static$climateNormal <-processCLIMATE(sim$climateNormalURL, sim$studyAreaRas)
+  
+  #Process  climate annual data
+  
   sim$match$climateAnnual <-processCLIMATE(sim$climateAnnualURL, sim$studyAreaRas)
   
+  ### process CCNL (artifical light) data, this is from GEE, so using the processed variable
+  
+  sim$match$CCNL <- processCCNL(sim$CCNLurls, sim$studyAreaRas)
+  
+  ### process SCANFI and MODIS LCC data, SCANFI could be processed TRUE or FALSE, for MODIS, currently only processed=TRUE
+  
+  sim$match$MODIS <- processLCC(sim$MODISurls,out$studyAreaRas,processed = TRUE)
+  
+  sim$match$SCANFILCC <- processLCC(sim$SCANFILCCurls,out$studyAreaRas,processed = FALSE)
+  
+  ## process climate normal data
+  sim$static$climateNormal <-processCLIMATE(sim$climateNormalURL, sim$studyAreaRas)
   ## Human Footprint (HF) Processing - 1km and 5km
   sim$static$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,
@@ -113,20 +129,26 @@ Init <- function(sim) {
   ) |> Cache()
   names(sim$static$hfProcessed$hf_1km) <- "CanHF_1km"
   sim$static$hfProcessed$hf_5km <- terra::focal(sim$static$hfProcessed$hf_1km, 
-  w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
+                                                w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
   names(sim$static$hfProcessed$hf_5km) <- "CanHF_5x5"  
   #browser()
+
   
-  
-  ## Wetlands Processing   
   sim$static$wetlandsProcessed <- processWETLANDS(sim$wetlandsURL, sim$studyAreaRas, processed = TRUE)
   
   ## Topography Processing - 1km and 5km
-    sim$static$topographyProcessed <- processTopography(
+  
+  sim$static$topographyProcessed <- processTopography(
     url = sim$topographyURL,sim$studyAreaRas, processed = TRUE)
-
-  ## SCANFI Processing - 1km and 5km
-  sim$match$SCANFI_processed <- processSCANFI(sim$SCANFIurls, sim$studyAreaRas, processed=TRUE)
+  # sim$static$topographyProcessed$topography_1km <- prepInputs(
+  #   url = sim$topographyURL,
+  #   fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
+  # ) |> Cache()
+  # 
+  # sim$static$topographyProcessed$topography_5km <- terra::focal(sim$static$topographyProcessed$topography_1km, 
+  #                                                  w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
+  # 
+  
   
   return(invisible(sim))
 }
@@ -158,30 +180,50 @@ plotFun <- function(sim) {
   if (!suppliedElsewhere("greenupURL", sim)) {
     sim$greenupURL <- "https://drive.google.com/drive/folders/1S7tF7vlWuCsKNcm9B8-9sdoX68Ewfq9G"
   }
+  
   if (!suppliedElsewhere("dormancyURL", sim)) {
     sim$dormancyURL <- "https://drive.google.com/drive/folders/1aF2bNq5emngUN4zWahz-awCixqA5qV6x"
   }
+  
   if (!suppliedElsewhere("wetlandsURL", sim)) {
     sim$wetlandsURL <- "https://drive.google.com/drive/folders/1qneFtxUG00PNIZjy3mnPyy3wwiI2st90"
   }
+  
   if (!suppliedElsewhere("topographyURL", sim)) {
     sim$topographyURL <- "https://drive.google.com/drive/folders/1poL9tnzWfvSjFn7uBJkRi1b7crF-HCLJ"
   }
+  
   if (!suppliedElsewhere("roadID", sim)) {
     sim$roadID <- "1jIJ4MyBAY8CMgqvh45gkTCGkX-AcpX0N"
   }
+  
   if (!suppliedElsewhere("climateNormalURL", sim)) {
-    sim$climateNormalURL <- "https://drive.google.com/drive/folders/1mG6g8sJVsHScGKxbW9X1xz6ExvsNv1oj"
+    sim$climateNormalURL <- "https://drive.google.com/drive/folders/1FP2hWm9VzIofnycRAGmNDwj-X5VPEdsw"
   }
   if (!suppliedElsewhere("climateAnnualURL", sim)) {
     sim$climateAnnualURL <- "https://drive.google.com/drive/folders/1GSkhN8-zJijMAZUn_TTGIDtShVN0R6JQ"
   }
+  
   if (!suppliedElsewhere("hfURL", sim)) {
     sim$hfURL <- "https://drive.google.com/drive/folders/1PsqXP-FYrdQrZ3uEkyR8BiyQOn3wZCW1"
   }
+  
   if (!suppliedElsewhere("SCANFIurls", sim)) {
     sim$SCANFIurls <- "https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs"
+    
   }
+  if (!suppliedElsewhere("CCNLurls", sim)) {
+    sim$CCNLurls <- "https://drive.google.com/drive/folders/1faup1xdWMomP_4vD3yJhD8Ge2gFGCtyn"
+  }
+  
+  if (!suppliedElsewhere("MODISurls", sim)) {
+    sim$MODISurls <- "https://drive.google.com/drive/folders/1GYuIuzIvPrq9Wu8r4oJiJrhwftcTc07k"
+  }
+  
+  if (!suppliedElsewhere("SCANFILCCurls", sim)) {
+    sim$SCANFILCCurls <- "https://drive.google.com/drive/folders/19rEnpGJWnTDq1BCWOu0oJPI0I_O3ugK5"
+  }
+  
   
   return(invisible(sim))
 }

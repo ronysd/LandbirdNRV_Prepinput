@@ -1,0 +1,21 @@
+processCCNL <- function(url, studyAreaRas) {
+  dPath <- "~/tmp/CCNL/"
+  dir.create(dPath, showWarnings = FALSE, recursive = TRUE)
+  
+  library(reproducible)
+  library(terra)
+  
+  rasters <- prepInputs(
+    url = url,
+    destinationPath = dPath,
+    fun = quote({
+      tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
+      b <- terra::rast(tf)
+      names(b) <- gsub("\\.tif$", "", basename(tf))  # remove .tif extension
+      b
+    }),
+    to = studyAreaRas
+  ) |> Cache()
+  
+  return(list("1km" = rasters))
+}

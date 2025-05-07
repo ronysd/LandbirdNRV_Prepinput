@@ -22,7 +22,7 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
   main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", SCANFIurl)
   drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")
   
-  # ---- Processed SCANFI ----
+  #  Processed SCANFI
   if (processed) {
     result_list <- list()
     for (res in c("1km", "5x5")) {
@@ -32,7 +32,6 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
         destinationPath = file.path(dPath, res),
         fun = quote({
           tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
-          browser()
           b <- rast(tf)
           names(b) <- standardizeSCANFIlayerNames(basename(tf)) #, resolution = res
           names(b) <- sub("^(SCANFI[^_]+)(_?)([0-9]{4})$", paste0("\\1_", res, "_\\3"), names(b))
@@ -46,7 +45,7 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
     return(result_list)
   }
   
-  # ---- Unprocessed SCANFI ----
+  # Unprocessed SCANFI
   variable_types <- c("biomass", "height", "sps", "closure")
   cv <- function(x) {
     y <- na.omit(sample(x, size = min(10, length(x)), replace = FALSE))

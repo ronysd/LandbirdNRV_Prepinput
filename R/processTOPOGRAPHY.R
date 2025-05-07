@@ -1,52 +1,53 @@
-processTopography <- function(url, studyAreaRas, processed = NULL) {
+processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
+  dPath <- "~/tmp/wetlands/"
+  dir.create(dPath, showWarnings = FALSE, recursive = TRUE)
+  
   library(googledrive)
   library(terra)
   library(reproducible)
   
-  dPath <- "~/tmp/Topography/"
-  dir.create(dPath, showWarnings = FALSE, recursive = TRUE)
-  
-  message("Loading Topography raster data from: ", url)
-  
-  # format file names
-  cleanTopoNames <- function(names_vector) {
-    names_vector <- gsub("\\.tif$", "", names_vector)
-    names_vector <- gsub("_canada", "", names_vector, ignore.case = TRUE)
-    names_vector <- gsub("^_", "", names_vector)
-    return(names_vector)
-  }
+  main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", wetlandsURL)
+  drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")
   
   if (processed) {
-    topo_rasters <- prepInputs(
-      url = url,
+    message("Detected processed Wetlands: 1km and 5x5 folders.")
+    result_list <- list()
+    for (res in c("1km", "5x5")) {
+      folder_id <- drive_folders$id[drive_folders$name == res]
+      rasters <- prepInputs(
+        url = paste0("https://drive.google.com/drive/folders/", folder_id),
+        destinationPath = file.path(dPath, res),
+        fun = quote({
+          tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
+          b <- terra::rast(tf)
+          names(b) <- gsub("\\.tif$", "", basename(tf))
+          b
+        }),
+        to = studyAreaRas
+      ) |> Cache()
+      result_list[[res]] <- rasters
+    }
+    return(result_list)
+  } else {
+    message("Detected URL for unprocessed wetland rasters")
+    
+    # Flat folder download
+    rasters <- prepInputs(
+      url = wetlandsURL,
+      destinationPath = dPath,
       fun = quote({
-        tfp <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
-        b <- terra::rast(tfp)
-        names(b) <- gsub("\\.tif$", "", basename(tfp))
+        tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
+        b <- terra::rast(tf)
+        names(b) <- gsub("\\.tif$", "", basename(tf))
         b
       }),
-      destinationPath = dPath,
       to = studyAreaRas
     ) |> Cache()
     
-    return(topo_rasters)
+    # Split into 1km and 5x5 (focal mean)
+    rasters_1km <- rasters
+    rasters_5x5 <- terra::focal(rasters_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
     
-  } else { ## if unprocessed
-    topo_raw <- prepInputs(
-      url = url,
-      fun = quote({
-        tfp <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
-        b <- terra::rast(tfp)
-        names(b) <- cleanTopoNames(basename(tfp))
-        b
-      }),
-      destinationPath = dPath,
-      to = studyAreaRas
-    ) |> Cache()
-    
-    # Rename layers to add _1km
-    names(topo_raw) <- paste0(names(topo_raw), "_1km")
-    
-    return(topo_raw)
+    return(list("1km" = rasters_1km, "5x5" = rasters_5x5))
   }
 }

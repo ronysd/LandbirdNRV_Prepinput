@@ -6,8 +6,8 @@ processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
   library(terra)
   library(reproducible)
   
-  main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", wetlandsURL)
-  drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")
+  drive_folders <- drive_ls(as_id(wetlandsURL), type = "folder")
+  
   
   if (processed) {
     message("Detected processed Wetlands: 1km and 5x5 folders.")
@@ -30,6 +30,8 @@ processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
     return(result_list)
   } else {
     message("Detected URL for unprocessed wetland rasters")
+    
+    # Flat folder download
     rasters <- prepInputs(
       url = wetlandsURL,
       destinationPath = dPath,
@@ -42,7 +44,7 @@ processWETLANDS <- function(wetlandsURL, studyAreaRas, processed = TRUE) {
       to = studyAreaRas
     ) |> Cache()
     
-    # Split into 1km and 5x5
+    # Split into 1km and 5x5 (focal mean)
     rasters_1km <- rasters
     rasters_5x5 <- terra::focal(rasters_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
     

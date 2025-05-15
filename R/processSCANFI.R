@@ -19,8 +19,7 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
   }
   
   
-  main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", SCANFIurl)
-  drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")
+  drive_folders <- drive_ls(as_id(SCANFIurl), type = "folder")
   
   #  Processed SCANFI
   if (processed) {

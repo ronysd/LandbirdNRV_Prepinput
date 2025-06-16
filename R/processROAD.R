@@ -25,8 +25,8 @@ processROAD <- function(csv_file_id, studyAreaRas) {
     
     roadRaster_1km <- rasterizeGeom(roadVect, studyAreaRas, fun = "length", unit = "km") |> Cache()
     roadRaster_5km <- terra::focal(roadRaster_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
-    names(roadRaster_1km) <- paste0("canroad_1km",year)
-    names(roadRaster_5km) <- paste0("canroad_5x5",year)
+    names(roadRaster_1km) <- paste0("canroad_1km_",year)
+    names(roadRaster_5km) <- paste0("canroad_5x5_",year)
     roadRasterList[[as.character(year)]] <- list(
       canroad_1km = roadRaster_1km,
       canroad_5x5 = roadRaster_5km

@@ -118,6 +118,8 @@ Init <- function(sim) {
   
   sim$match$MODIS <- processLCC(sim$MODISurls,out$studyAreaRas,processed = TRUE)
   
+  sim$match$VLCE <- processLCC(sim$VLCEurls,out$studyAreaRas,processed = TRUE)
+  
   sim$match$SCANFILCC <- processLCC(sim$SCANFILCCurls,out$studyAreaRas,processed = FALSE)
   
   ## process climate normal data
@@ -132,7 +134,7 @@ Init <- function(sim) {
                                                 w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
   names(sim$static$hfProcessed$hf_5km) <- "CanHF_5x5"  
   #browser()
-
+  
   
   sim$static$wetlandsProcessed <- processWETLANDS(sim$wetlandsURL, sim$studyAreaRas, processed = TRUE)
   
@@ -150,6 +152,19 @@ Init <- function(sim) {
   # 
   
   
+  ## Prepare data table for creating the raster stack that will beused to project the model
+  
+  sim$lag_df <- readExtractionLag(url = sim$lagURL, destinationPath = "~/bird_NRV/inputs/")
+  
+  # Extract variable metadata
+  sim$vars_available <- extractAvailableVariables(sim)
+  
+  # Build stacks for all years
+  sim$stack_list <- buildRasterStackAllYears(
+    outSim = sim,
+    lag_df = sim$lag_df,
+    vars_available = sim$vars_available
+  )
   return(invisible(sim))
 }
 
@@ -220,10 +235,16 @@ plotFun <- function(sim) {
     sim$MODISurls <- "https://drive.google.com/drive/folders/1GYuIuzIvPrq9Wu8r4oJiJrhwftcTc07k"
   }
   
+  if (!suppliedElsewhere("VLCEurls", sim)) {
+    sim$VLCEurls <- "https://drive.google.com/drive/folders/1QFoPIDYVO_BwjphWdYy0mpjQGfdlj9qb"
+  }
+  
   if (!suppliedElsewhere("SCANFILCCurls", sim)) {
     sim$SCANFILCCurls <- "https://drive.google.com/drive/folders/19rEnpGJWnTDq1BCWOu0oJPI0I_O3ugK5"
   }
   
-  
+  if (!suppliedElsewhere("sim$lagURL", sim)) {
+    sim$lagURL <- "https://drive.google.com/drive/folders/1YthVvq2u3PxUJcmomrAbfr5fJWcpOxIn"
+  }
   return(invisible(sim))
 }

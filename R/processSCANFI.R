@@ -19,6 +19,16 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
   }
   
   
+  # Handle extent mismatch
+  resampleIfMismatch <- function(ras, template) {
+    if (!compareGeom(ras, template, stopOnError = FALSE)) {
+      message("Resampling due to mismatch in extent/resolution")
+      ras <- resample(ras, template)
+    }
+    return(ras)
+  }
+  
+  
   main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", SCANFIurl)
   drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")
   
@@ -30,16 +40,36 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
       tfp <- prepInputs(
         url = paste0("https://drive.google.com/drive/folders/", folder_id),
         destinationPath = file.path(dPath, res),
-        fun = quote({
-          tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
-          b <- rast(tf)
-          names(b) <- standardizeSCANFIlayerNames(basename(tf)) #, resolution = res
-          names(b) <- sub("^(SCANFI[^_]+)(_?)([0-9]{4})$", paste0("\\1_", res, "_\\3"), names(b))
-          
-          b
-        }),
-        to = studyAreaRas
-      )|> Cache()
+  #       fun = quote({
+  #         tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
+  #         b <- rast(tf)
+  #         names(b) <- standardizeSCANFIlayerNames(basename(tf)) #, resolution = res
+  #         names(b) <- sub("^(SCANFI[^_]+)(_?)([0-9]{4})$", paste0("\\1_", res, "_\\3"), names(b))
+  #         
+  #         b
+  #       }),
+  #       to = studyAreaRas
+  #     )|> Cache()
+  #     result_list[[res]] <- tfp
+  #   }
+  #   return(result_list)
+  # }
+  fun = quote({
+    tf <- sort(targetFilePath[grepl("\\.tif$", targetFilePath)])
+    layers <- lapply(tf, function(f) {
+      r <- rast(f)
+      r <- resampleIfMismatch(r, studyAreaRas)
+      names(r) <- gsub("\\.tif$", "", basename(f))
+      r
+    })
+    rast(layers)
+  }),
+  to = studyAreaRas
+      ) |> Cache()
+      
+      # Apply naming convention
+      names(tfp) <- standardizeSCANFIlayerNames(names(tfp))
+      names(tfp) <- sub("^(SCANFI[^_]+)(?:_)?([0-9]{4})$", paste0("\\1_", res, "_\\2"), names(tfp))
       result_list[[res]] <- tfp
     }
     return(result_list)
@@ -54,7 +84,7 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
   
   subfolders <- drive_folders$name
   result_list <- list("1km" = list(), "5x5" = list())
-  
+  browser()
   for (subfolder in subfolders) {
     year <- gsub("SCANFI_", "", subfolder)
     folder_id <- drive_folders$id[drive_folders$name == subfolder]

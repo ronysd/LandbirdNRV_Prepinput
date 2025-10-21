@@ -20,14 +20,23 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
   
   
   # Handle extent mismatch
-  resampleIfMismatch <- function(ras, template) {
+  #resampleIfMismatch <- function(ras, template) {
+   #if (!compareGeom(ras, template, stopOnError = FALSE)) {
+      #message("Resampling due to mismatch in extent/resolution")
+     # ras <- resample(ras, template)
+   # }
+  #  return(ras)
+  #}
+    resampleIfMismatch <- function(ras, template) {
     if (!compareGeom(ras, template, stopOnError = FALSE)) {
       message("Resampling due to mismatch in extent/resolution")
-      ras <- resample(ras, template)
+      if (!terra::same.crs(ras, template)) {
+        ras <- terra::project(ras, template)
+      }  
+      ras <- terra::resample(ras, template)
     }
     return(ras)
   }
-  
   
   main_folder_id <- sub(".*/folders/([^/]+)$", "\\1", SCANFIurl)
   drive_folders <- drive_ls(as_id(main_folder_id), type = "folder")

@@ -16,7 +16,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "bird_dataPrep.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "terra", "reproducible", "googledrive","dplyr"),
+  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "terra", "reproducible", "googledrive","dplyr","sf","terra"),
   parameters = bindrows(
     defineParameter(".plots", "character", "screen", NA, NA, "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA, "Describes the simulation time at which the first plot event should occur."),
@@ -248,3 +248,4 @@ plotFun <- function(sim) {
   }
   return(invisible(sim))
 }
+

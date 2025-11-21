@@ -127,7 +127,9 @@ processSCANFI <- function(SCANFIurl, studyAreaRas, processed = TRUE) {
       
       if (var_type == "height") {
         ras_cv <- aggregate(ras_1km, fact = 33, fun = cv)
-        ras_cv_1km <- project(ras_cv, studyAreaRas)
+        #ras_cv_1km <- project(ras_cv, studyAreaRas)
+        ## making sure biliear (BAM) rather than default nearest
+        ras_cv_1km <- terra::project(ras_cv,studyAreaRas,res = 1000,method = "bilinear",align = TRUE)
         ras_cv_5x5 <- focal(ras_cv_1km, w = matrix(1, 5, 5), fun = mean, na.rm = TRUE)
         
         result_list[["1km"]][[paste0("SCANFIheightcv_1km_", year)]] <- ras_cv_1km

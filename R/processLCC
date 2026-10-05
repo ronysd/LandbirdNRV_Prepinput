@@ -113,6 +113,8 @@ processLCC <- function(url, studyAreaRas, processed = NULL) {
         b
       }),
       to = studyAreaRas
+       ## default was bilinear, which creates continuous lcc
+        method = "near"
     ) |> Cache()
     
     result_list <- list("1km" = rasters)
@@ -120,7 +122,7 @@ processLCC <- function(url, studyAreaRas, processed = NULL) {
     for (res in resolutions) {
       if (res != "1km") {
         window_size <- ifelse(res == "100m", 3, 5)  # Adjust focal window dynamically
-        ras_agg <- focal(rasters, w = matrix(1, window_size, window_size), fun = mean, na.rm = TRUE)
+        ras_agg <- focal(rasters, w = matrix(1, window_size, window_size), fun = modal, na.rm = TRUE)
         new_names_res <- gsub("SCANFI_1km_", paste0("SCANFI_", res, "_"), names(rasters))
         names(ras_agg) <- new_names_res
         result_list[[res]] <- ras_agg

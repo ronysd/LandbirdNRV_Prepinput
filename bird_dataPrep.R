@@ -16,7 +16,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "bird_dataPrep.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "terra", "reproducible", "googledrive","dplyr","sf","terra"),
+  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "terra", "googledrive","dplyr","crayon"), #"PredictiveEcology/reproducible@AI (>= 2.1.2.9008)"
   parameters = bindrows(
     defineParameter(".plots", "character", "screen", NA, NA, "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA, "Describes the simulation time at which the first plot event should occur."),
@@ -45,7 +45,7 @@ defineModule(sim, list(
                  sourceURL = "https://drive.google.com/drive/folders/1GSkhN8-zJijMAZUn_TTGIDtShVN0R6JQ"),
     expectsInput(objectName ="hfURL", objectClass = "character", "URL for Canadian human footprint (disturbance proxy) data.", 
                  sourceURL =  "https://drive.google.com/drive/folders/1PsqXP-FYrdQrZ3uEkyR8BiyQOn3wZCW1"),
-    expectsInput(objectName ="SCANFIurls", objectClass = "character", desc = "Google Drive URL for Processed SCANFI (or unprocessed, if theres any, remember to change processed =TRUE/FALSE for the processSCANFI call) biomass raster datasets.", 
+    expectsInput(objectName ="SCANFIurls", objectClass = "character", desc = "Google Drive URL for Processed SCANFI (or unprocessed, if theres any, need to change processed =TRUE/FALSE for the processSCANFI call) biomass raster datasets.", 
                  sourceURL ="https://drive.google.com/drive/folders/1zF0PozF8j7u3K6x8gMblFwAZ41ZhmVPs")
   ),
   outputObjects = bindrows(
@@ -88,23 +88,29 @@ doEvent.bird_dataPrep = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   dPath <- "~/tmp/"
-  
+  #browser()
   # Greenup Processing - 1km (or to study area res and extent)
-  sim$match$greenupProcessed$greenup_1km <- processGreenupDormancy(sim$greenupURL,out$studyAreaRas,
+  sim$match$greenupProcessed$greenup_1km <- processGreenupDormancy(sim$greenupURL,sim$studyAreaRas,
                                                                    varPrefix = "StandardGreenup") ## VarPrefix renames the layer to make them model-ready
   
   # Dormancy Processing - 1km (or to study area res and extent)  
-  
-  sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$dormancyURL,out$studyAreaRas,
+ 
+  sim$match$dormancyProcessed$dormancy_1km <-processGreenupDormancy(sim$dormancyURL,sim$studyAreaRas,
                                                                     varPrefix = "StandardDormancy") ## VarPrefix renames the layer to make them model-ready
   
   ## Road Processing - 1km and 5km
   
-  sim$match$roadProcessed <- processROAD(sim$roadID, sim$studyAreaRas)
+  sim$match$roadProcessed <- processROAD(sim$roadID, sim$studyAreaRas)|> Cache(userTags = c("roads", "processROAD"))
   
   ## SCANFI Processing - 1km and 5km
-  sim$match$SCANFI_processed <- processSCANFI(sim$SCANFIurls, sim$studyAreaRas, processed=TRUE)
-  #browser()
+  
+  sim$match$SCANFI_processed <- #processSCANFI(sim$SCANFIurls, sim$studyAreaRas, processed=TRUE)
+  processSCANFI (sim$SCANFIurls,sim$studyAreaRas,sim$studyAreaRas,sim$studyAreaRas,
+    processed = TRUE,
+    version = "v1",
+    years = NULL,
+    variables = NULL
+  ) 
   
   #Process  climate annual data
   
@@ -116,11 +122,11 @@ Init <- function(sim) {
   
   ### process SCANFI and MODIS LCC data, SCANFI could be processed TRUE or FALSE, for MODIS, currently only processed=TRUE
   
-  sim$match$MODIS <- processLCC(sim$MODISurls,out$studyAreaRas,processed = TRUE)
+  sim$match$MODIS <- processLCC(sim$MODISurls,sim$studyAreaRas,processed = TRUE)
   
-  sim$match$VLCE <- processLCC(sim$VLCEurls,out$studyAreaRas,processed = TRUE)
-  
-  sim$match$SCANFILCC <- processLCC(sim$SCANFILCCurls,out$studyAreaRas,processed = FALSE)
+  sim$match$VLCE <- processLCC(sim$VLCEurls,sim$studyAreaRas,processed = TRUE)
+  browser()
+  sim$match$SCANFILCC <- processLCC(sim$SCANFILCCurls,sim$studyAreaRas,processed = FALSE)
   
   ## process climate normal data
   sim$static$climateNormal <-processCLIMATE(sim$climateNormalURL, sim$studyAreaRas)
@@ -128,10 +134,10 @@ Init <- function(sim) {
   sim$static$hfProcessed$hf_1km <- prepInputs(
     url = sim$hfURL,
     fun = "terra::rast", destinationPath = dPath, to = sim$studyAreaRas
-  ) |> Cache()
+  ) |> Cache(userTags = c("hf", "prepInput"))
   names(sim$static$hfProcessed$hf_1km) <- "CanHF_1km"
   sim$static$hfProcessed$hf_5km <- terra::focal(sim$static$hfProcessed$hf_1km, 
-                                                w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache()
+                                                w = matrix(1, 5, 5), fun = mean, na.rm = TRUE) |> Cache(userTags = c("hf_5x5", "focal"))
   names(sim$static$hfProcessed$hf_5km) <- "CanHF_5x5"  
   #browser()
   
@@ -158,7 +164,8 @@ Init <- function(sim) {
   
   # Extract variable metadata
   sim$vars_available <- extractAvailableVariables(sim)
-  
+  #browser()
+  sim$varmetaTable <-left_join(sim$vars_available, sim$lag_df, by = c("base" = "Label"))
   # Build stacks for all years
   sim$stack_list <- buildRasterStackAllYears(
     outSim = sim,
@@ -193,11 +200,11 @@ plotFun <- function(sim) {
   }
   
   if (!suppliedElsewhere("greenupURL", sim)) {
-    sim$greenupURL <- "https://drive.google.com/drive/folders/1S7tF7vlWuCsKNcm9B8-9sdoX68Ewfq9G"
+    sim$greenupURL <- "https://drive.google.com/drive/u/0/folders/1JZdZn9xqASO1Exk6h0ScmbNChxmHbnKN" #"https://drive.google.com/drive/folders/1S7tF7vlWuCsKNcm9B8-9sdoX68Ewfq9G"
   }
   
   if (!suppliedElsewhere("dormancyURL", sim)) {
-    sim$dormancyURL <- "https://drive.google.com/drive/folders/1aF2bNq5emngUN4zWahz-awCixqA5qV6x"
+    sim$dormancyURL <-"https://drive.google.com/drive/u/0/folders/1qu6sKvQnLvpQ62ljdv6K99gcZYnWiRm2"   #"https://drive.google.com/drive/folders/1aF2bNq5emngUN4zWahz-awCixqA5qV6x"
   }
   
   if (!suppliedElsewhere("wetlandsURL", sim)) {
@@ -248,4 +255,3 @@ plotFun <- function(sim) {
   }
   return(invisible(sim))
 }
-

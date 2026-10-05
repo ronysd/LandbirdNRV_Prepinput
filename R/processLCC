@@ -89,7 +89,8 @@ processLCC <- function(url, studyAreaRas, processed = NULL) {
           names(b) <- gsub("\\.tif$", "", basename(tf))
           b
         }),
-        to = studyAreaRas
+        to = studyAreaRas,
+        userTags = "processLCC"
       ) |> Cache()
       result_list[[res]] <- rasters
     }
